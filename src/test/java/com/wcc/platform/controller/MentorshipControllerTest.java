@@ -2,10 +2,12 @@ package com.wcc.platform.controller;
 
 import static com.wcc.platform.domain.cms.PageType.MENTORSHIP;
 import static com.wcc.platform.domain.cms.PageType.MENTORSHIP_CONDUCT;
-import static com.wcc.platform.factories.SetupMentorshipFactories.createMentorsPageTest;
+import static com.wcc.platform.domain.cms.PageType.STUDY_GROUPS;
+import static com.wcc.platform.factories.SetupMentorshipFactories.createMentorPageTest;
 import static com.wcc.platform.factories.SetupMentorshipFactories.createMentorshipConductPageTest;
 import static com.wcc.platform.factories.SetupMentorshipFactories.createMentorshipFaqPageTest;
 import static com.wcc.platform.factories.SetupMentorshipFactories.createMentorshipPageTest;
+import static com.wcc.platform.factories.SetupMentorshipFactories.createMentorshipStudyGroupPageTest;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -13,7 +15,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wcc.platform.configuration.SecurityConfig;
+import com.wcc.platform.domain.cms.pages.mentorship.MentorsPage;
 import com.wcc.platform.domain.exceptions.PlatformInternalException;
 import com.wcc.platform.factories.MockMvcRequestFactory;
 import com.wcc.platform.service.MentorshipService;
@@ -35,8 +39,10 @@ public class MentorshipControllerTest {
   public static final String API_MENTORSHIP_OVERVIEW = "/api/cms/v1/mentorship/overview";
   public static final String API_MENTORSHIP_FAQ = "/api/cms/v1/mentorship/faq";
   public static final String API_MENTORSHIP_CONDUCT = "/api/cms/v1/mentorship/code-of-conduct";
+  public static final String API_STUDY_GROUPS = "/api/cms/v1/mentorship/study-groups";
   public static final String API_MENTORSHIP_MENTORS = "/api/cms/v1/mentorship/mentors";
   @Autowired private MockMvc mockMvc;
+  @Autowired private ObjectMapper objectMapper;
 
   @MockBean private MentorshipService service;
 
@@ -95,16 +101,27 @@ public class MentorshipControllerTest {
   }
 
   @Test
-  void testMentorsOkResponse() throws Exception {
-    var fileName = "mentorsPage.json";
+  void testStudyGroupResponse() throws Exception {
+    var fileName = STUDY_GROUPS.getFileName();
     var expectedJson = FileUtil.readFileAsString(fileName);
 
-    when(service.getMentors()).thenReturn(createMentorsPageTest(fileName));
+    when(service.getStudyGroups()).thenReturn(createMentorshipStudyGroupPageTest(fileName));
+    mockMvc
+        .perform(MockMvcRequestFactory.getRequest(API_STUDY_GROUPS).contentType(APPLICATION_JSON))
+        .andExpect(status().isOk())
+        .andExpect(content().json(expectedJson));
+  }
+
+  @Test
+  void testMentorsOkResponse() throws Exception {
+    MentorsPage mentorsPage = createMentorPageTest();
+
+    when(service.getMentors()).thenReturn(mentorsPage);
 
     mockMvc
         .perform(
             MockMvcRequestFactory.getRequest(API_MENTORSHIP_MENTORS).contentType(APPLICATION_JSON))
         .andExpect(status().isOk())
-        .andExpect(content().json(expectedJson));
+        .andExpect(content().json(objectMapper.writeValueAsString(mentorsPage)));
   }
 }
